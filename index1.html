@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="vi" data-accent="cyan">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aegis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a14;
+    --acc: #19e3ff;
+    --acc-rgb: 25, 227, 255;
+    --acc2: #ff4fa3;
+    --ok: #39ff9c;
+    --warn: #ffb020;
+    --hot: #ff7a2f;
+    --bad: #ff3b4e;
+    --txt: #dff3ff;
+    --mut: #7f98b5;
+    --fd: "Orbitron", "Exo 2", system-ui, sans-serif;
+    --fb: "Exo 2", system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  [data-accent="violet"] { --acc: #a98bff; --acc-rgb: 169, 139, 255; --acc2: #4de2ff; }
+  [data-accent="lime"]   { --acc: #8dff5c; --acc-rgb: 141, 255, 92;  --acc2: #ffd23f; }
+  [data-accent="amber"]  { --acc: #ffb020; --acc-rgb: 255, 176, 32;  --acc2: #4de2ff; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--bg); }
+  body {
+    color: var(--txt); max-width: 100vw; font-family: var(--fb); font-size: 15px; line-height: 1.45; min-height: 100vh;
+    background:
+      radial-gradient(900px 500px at 15% -10%, rgba(var(--acc-rgb), .16), transparent 60%),
+      radial-gradient(800px 500px at 100% 10%, rgba(255, 79, 163, .09), transparent 60%),
+      linear-gradient(rgba(var(--acc-rgb), .045) 1px, transparent 1px) 0 0 / 44px 44px,
+      linear-gradient(90deg, rgba(var(--acc-rgb), .045) 1px, transparent 1px) 0 0 / 44px 44px,
+      var(--bg);
+    overflow-x: hidden;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
+  }
+  .vignette { position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: 0; box-shadow: inset 0 0 140px rgba(255, 40, 60, .6); }
+  body.alarm .vignette { animation: vig 1s ease-in-out infinite; }
+  @keyframes vig { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 16px 16px 30px; position: relative; z-index: 1; }
+
+  /* Header */
+  .top { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; padding: 6px 0 18px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .hex { width: 46px; height: 46px; color: var(--acc); filter: drop-shadow(0 0 8px rgba(var(--acc-rgb), .8)); }
+  .logo { font-family: var(--fd); font-weight: 900; font-size: 24px; letter-spacing: .22em; }
+  .tag { font-size: 12px; color: var(--mut); letter-spacing: .06em; }
+  .top-r { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; max-width: 100%; }
+  .accents { display: flex; gap: 7px; }
+  .accents button { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); cursor: pointer; padding: 0; }
+  .accents button.active { border-color: #fff; box-shadow: 0 0 8px currentColor; }
+  .chip {
+    font-family: var(--fb); font-size: 12px; font-weight: 600; letter-spacing: .1em; color: var(--txt);
+    border: 1px solid rgba(var(--acc-rgb), .45); background: rgba(var(--acc-rgb), .08);
+    padding: 7px 14px; cursor: pointer;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+  .chip.active { background: var(--acc); color: #03101a; }
+  .status { cursor: default; display: inline-flex; align-items: center; gap: 8px; }
+  .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 8px var(--warn); display: block; }
+  .status.on i { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .status.off i { background: var(--bad); box-shadow: 0 0 8px var(--bad); }
+  .clock { font-family: var(--fd); font-size: 15px; letter-spacing: .08em; color: var(--acc); min-width: 84px; text-align: right; }
+
+  /* Panel kiểu HUD */
+  .panel {
+    position: relative; padding: 18px;
+    background: linear-gradient(160deg, rgba(20, 40, 72, .72), rgba(7, 14, 30, .78));
+    border: 1px solid rgba(var(--acc-rgb), .32);
+    box-shadow: inset 0 0 50px rgba(var(--acc-rgb), .05);
+    backdrop-filter: blur(6px);
+    clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  }
+  .panel::before { content: ""; position: absolute; top: 0; left: 18px; width: 46px; height: 2px; background: var(--acc); box-shadow: 0 0 10px var(--acc); }
+  .panel::after  { content: ""; position: absolute; bottom: 0; right: 18px; width: 46px; height: 2px; background: var(--acc); box-shadow: 0 0 10px var(--acc); }
+  .pt { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--acc); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .pt::before { content: ""; width: 6px; height: 6px; background: var(--acc); box-shadow: 0 0 8px var(--acc); transform: rotate(45deg); }
+  .section { margin-top: 20px; }
+
+  /* Hàng chính */
+  .hero { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 20px; align-items: stretch; }
+  @media (max-width: 980px) {
+    .hero { grid-template-columns: 1fr 1fr; }
+    .hero .core { grid-column: 1 / -1; order: -1; }
+  }
+  @media (max-width: 560px) { .hero { grid-template-columns: 1fr; } }
+
+  /* Đồng hồ vòng */
+  .ring-wrap { position: relative; width: 100%; max-width: 260px; margin: 0 auto; aspect-ratio: 1; }
+  .ring-wrap svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .trk { fill: none; stroke: rgba(255,255,255,.09); stroke-width: 12; stroke-linecap: round; }
+  .val { fill: none; stroke: var(--acc); stroke-width: 12; stroke-linecap: round; filter: drop-shadow(0 0 7px var(--acc)); transition: stroke-dasharray .6s ease, stroke .3s; }
+  .tk line { stroke: rgba(var(--acc-rgb), .5); stroke-width: 1.5; }
+  .lim { stroke: var(--bad); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 4px var(--bad)); }
+  .gnum { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+  .gnum .n { font-family: var(--fd); font-weight: 700; font-size: clamp(34px, 6vw, 48px); line-height: 1; text-shadow: 0 0 16px rgba(var(--acc-rgb), .6); }
+  .gnum .u { font-family: var(--fd); font-size: 15px; color: var(--acc); margin-top: 2px; }
+  .gnum .l { font-size: 11px; letter-spacing: .22em; color: var(--mut); text-transform: uppercase; margin-top: 8px; }
+  .gsub { text-align: center; font-size: 13px; color: var(--mut); margin-top: 6px; min-height: 20px; }
+  .gauge { display: flex; flex-direction: column; justify-content: center; }
+  .gauge .pt { align-self: flex-start; margin-bottom: auto; }
+  .gauge.hot .val { stroke: var(--bad); filter: drop-shadow(0 0 8px var(--bad)); }
+  .gauge.hot .gnum .n { color: var(--bad); text-shadow: 0 0 16px rgba(255, 59, 78, .7); }
+  .gauge.hot .gsub { color: var(--bad); font-weight: 600; }
+  .gauge.bad .gsub { color: var(--bad); }
+
+  /* Radar */
+  .core { --lvc: var(--acc); --lvrgb: var(--acc-rgb); text-align: center; display: flex; flex-direction: column; }
+  .core.l0 { --lvc: #39ff9c; --lvrgb: 57, 255, 156; }
+  .core.l1 { --lvc: #ffb020; --lvrgb: 255, 176, 32; }
+  .core.l2 { --lvc: #ff7a2f; --lvrgb: 255, 122, 47; }
+  .core.l3 { --lvc: #ff3b4e; --lvrgb: 255, 59, 78; }
+  .core::before, .core::after { background: var(--lvc); box-shadow: 0 0 10px var(--lvc); }
+  .radar {
+    position: relative; width: min(100%, 300px); aspect-ratio: 1; margin: 6px auto 12px; border-radius: 50%;
+    border: 1px solid rgba(var(--lvrgb), .7);
+    background:
+      linear-gradient(rgba(var(--lvrgb), .25), rgba(var(--lvrgb), .25)) center / 1px 100% no-repeat,
+      linear-gradient(90deg, rgba(var(--lvrgb), .25), rgba(var(--lvrgb), .25)) center / 100% 1px no-repeat,
+      repeating-radial-gradient(circle closest-side, transparent 0 24%, rgba(var(--lvrgb), .3) 24% 25%),
+      radial-gradient(circle, rgba(var(--lvrgb), .12), transparent 70%);
+    box-shadow: 0 0 30px rgba(var(--lvrgb), .25), inset 0 0 30px rgba(var(--lvrgb), .12);
+    overflow: hidden;
+  }
+  .sweep {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(var(--lvrgb), 0) 0deg, rgba(var(--lvrgb), 0) 280deg, rgba(var(--lvrgb), .5) 356deg, rgba(var(--lvrgb), .95) 360deg);
+    animation: spin 4s linear infinite;
+  }
+  .core.l2 .sweep, .core.l3 .sweep { animation-duration: 1.1s; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .rc { position: absolute; inset: 0; display: grid; place-items: center; font-size: 40px; z-index: 2; filter: drop-shadow(0 0 10px rgba(var(--lvrgb), .9)); }
+  .blip { position: absolute; width: 14px; height: 14px; border-radius: 50%; opacity: 0; z-index: 3; transform: translate(-50%, -50%); }
+  .blip.on { opacity: 1; animation: ping 1s ease-out infinite; }
+  .blip.fl { left: 70%; top: 30%; background: var(--bad); box-shadow: 0 0 0 0 rgba(255, 59, 78, .7); }
+  .blip.sm { left: 30%; top: 66%; background: var(--hot); box-shadow: 0 0 0 0 rgba(255, 122, 47, .7); }
+  @keyframes ping { to { box-shadow: 0 0 0 18px rgba(255, 255, 255, 0); } }
+  .stw { font-family: var(--fb); font-weight: 700; font-size: clamp(24px, 4.2vw, 34px); letter-spacing: .08em; text-transform: uppercase; color: var(--lvc); text-shadow: 0 0 18px rgba(var(--lvrgb), .7); }
+  .core.l3 .stw { animation: flick .6s steps(2) infinite; }
+  @keyframes flick { 50% { opacity: .6; } }
+  .std { font-size: 13px; color: var(--mut); margin-top: 4px; min-height: 40px; }
+
+  /* Thẻ cảm biến */
+  .strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 860px) { .strip { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 440px) { .strip { grid-template-columns: 1fr; } }
+  .tile { --tc: var(--hot); padding: 16px; display: flex; align-items: center; gap: 14px; }
+  .tile.t-flame, .tile.t-dht { --tc: var(--bad); }
+  .tile.t-heat { --tc: var(--warn); }
+  .tile .ic { width: 42px; height: 42px; flex: none; color: var(--ok); filter: drop-shadow(0 0 6px currentColor); }
+  .tile .ic svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .tile .tl { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--mut); }
+  .tile .tv { font-weight: 700; font-size: 19px; color: var(--ok); text-transform: uppercase; letter-spacing: .04em; }
+  .tile .ts { font-size: 12px; color: var(--mut); }
+  .tile.alert { border-color: var(--tc); background: linear-gradient(160deg, rgba(255, 59, 78, .18), rgba(7, 14, 30, .8)); }
+  .tile.alert .ic, .tile.alert .tv { color: var(--tc); }
+  .tile.alert .ic { animation: flick .7s steps(2) infinite; }
+
+  /* Bảng lệnh */
+  .deck-top { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; margin-bottom: 16px; }
+  .mswitch { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; border: 1px solid rgba(var(--acc-rgb), .55); border-radius: 999px; padding: 4px; }
+  .mswitch .knob { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px; background: linear-gradient(90deg, var(--acc), rgba(var(--acc-rgb), .65)); box-shadow: 0 0 14px rgba(var(--acc-rgb), .6); transition: transform .3s ease; }
+  .mswitch[data-mode="manual"] .knob { transform: translateX(100%); }
+  .mswitch button { position: relative; z-index: 1; border: 0; background: transparent; color: var(--mut); font-family: var(--fb); font-weight: 700; font-size: 13px; letter-spacing: .14em; padding: 9px 22px; cursor: pointer; transition: color .2s; }
+  .mswitch button.active { color: #03101a; }
+  .mswitch button:disabled { cursor: not-allowed; opacity: .55; }
+  .hint { font-size: 13px; color: var(--mut); flex: 1; min-width: 220px; }
+
+  .mods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 640px) { .mods { grid-template-columns: 1fr; } }
+  .mod {
+    position: relative; text-align: left; color: var(--txt); font-family: var(--fb); cursor: pointer;
+    border: 1px solid rgba(var(--acc-rgb), .3); padding: 16px 16px 14px 16px;
+    background: linear-gradient(160deg, rgba(14, 28, 52, .9), rgba(6, 12, 26, .9));
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    display: flex; align-items: center; gap: 14px; transition: background .2s, transform .1s;
+  }
+  .mod:active:not(:disabled) { transform: scale(.98); }
+  .mod .pw { width: 44px; height: 44px; flex: none; fill: none; stroke: var(--mut); stroke-width: 3; stroke-linecap: round; transition: .2s; }
+  .mod .mn { display: block; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: 15px; }
+  .mod .ms { display: block; font-size: 12px; color: var(--mut); }
+  .mod.on { border-color: var(--acc); background: linear-gradient(160deg, rgba(var(--acc-rgb), .28), rgba(6, 12, 26, .92)); box-shadow: inset 0 0 28px rgba(var(--acc-rgb), .2); }
+  .mod.on .pw { stroke: var(--acc); filter: drop-shadow(0 0 7px var(--acc)); }
+  .mod.on .ms { color: var(--acc); font-weight: 600; }
+  .mod:disabled { cursor: not-allowed; opacity: .5; }
+
+  .deck-b { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; margin-top: 18px; padding-top: 16px; border-top: 1px dashed rgba(var(--acc-rgb), .3); }
+  .lim-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; flex: 1 1 280px; min-width: 0; }
+  .lim-box .lb { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--mut); white-space: nowrap; }
+  .lim-box .lv { font-family: var(--fd); font-weight: 700; font-size: 17px; color: var(--acc); min-width: 74px; text-align: right; }
+  input[type=range] { -webkit-appearance: none; appearance: none; flex: 1 1 140px; min-width: 0; height: 6px; border-radius: 3px; outline: none;
+    background: linear-gradient(90deg, var(--acc) var(--p, 50%), rgba(255,255,255,.14) var(--p, 50%)); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid var(--acc); box-shadow: 0 0 12px var(--acc); cursor: pointer; }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 4px solid var(--acc); box-shadow: 0 0 12px var(--acc); cursor: pointer; }
+  .btn { font-family: var(--fb); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #03101a; background: var(--acc);
+    border: 0; padding: 10px 20px; cursor: pointer; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+  .btn.ghost { background: transparent; color: var(--txt); box-shadow: inset 0 0 0 1px rgba(var(--acc-rgb), .6); }
+  .btn.ghost.on { background: var(--bad); color: #fff; box-shadow: none; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Đồ thị + nhật ký */
+  .two { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+  .legend { display: flex; gap: 18px; font-size: 12px; color: var(--mut); margin-bottom: 8px; }
+  .legend b { display: inline-block; width: 18px; height: 3px; margin-right: 7px; vertical-align: middle; box-shadow: 0 0 8px currentColor; }
+  .chart-box { height: 250px; position: relative; }
+  canvas { width: 100%; height: 100%; display: block; }
+
+  .tline { max-height: 300px; overflow: auto; position: relative; padding-left: 6px; }
+  .ev { position: relative; padding: 4px 0 14px 24px; border-left: 1px solid rgba(var(--acc-rgb), .35); margin-left: 6px; }
+  .ev::before { content: ""; position: absolute; left: -6px; top: 8px; width: 11px; height: 11px; transform: rotate(45deg); background: var(--c, var(--acc)); box-shadow: 0 0 10px var(--c, var(--acc)); }
+  .ev .e1 { font-weight: 700; letter-spacing: .04em; color: var(--c, var(--acc)); }
+  .ev .e2 { font-size: 12px; color: var(--mut); font-family: var(--fd); letter-spacing: .04em; }
+  .none { color: var(--mut); padding: 12px 0; font-size: 14px; }
+
+  footer { margin-top: 22px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--mut); letter-spacing: .04em; }
+
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 60;
+    background: rgba(8, 18, 36, .96); color: var(--acc); border: 1px solid var(--acc); padding: 10px 20px; font-size: 14px; transition: .25s; max-width: 90vw; box-shadow: 0 0 18px rgba(var(--acc-rgb), .4); }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  #toast.err { color: #fff; background: rgba(160, 20, 40, .96); border-color: var(--bad); box-shadow: 0 0 18px rgba(255, 59, 78, .5); }
+</style>
+</head>
+<body>
+<div class="vignette"></div>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <svg class="hex" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+        <path d="M24 3l18 10.5v21L24 45 6 34.5v-21z"/>
+        <path d="M24 13l9 5.2v10.4L24 33.8l-9-5.2V18.2z" opacity=".7"/>
+        <circle cx="24" cy="23.4" r="2.6" fill="currentColor"/>
+      </svg>
+      <div>
+        <div class="logo">AEGIS</div>
+        <div class="tag">Mạng lưới phòng cháy thông minh</div>
+      </div>
+    </div>
+    <div class="top-r">
+      <div class="accents" id="accents"></div>
+      <button class="chip" id="btnSound">LOA · TẮT</button>
+      <div class="chip status" id="link"><i></i><span>ĐANG KẾT NỐI</span></div>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- Hàng chính -->
+  <section class="hero">
+    <div class="panel gauge" id="pTemp">
+      <div class="pt">Nhiệt độ</div>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 200 200">
+          <g class="tk" id="tkT"></g>
+          <circle class="trk" cx="100" cy="100" r="80" transform="rotate(135 100 100)" id="trkT"/>
+          <circle class="val" cx="100" cy="100" r="80" transform="rotate(135 100 100)" id="arcT"/>
+          <line class="lim" id="limTick" x1="100" y1="8" x2="100" y2="26"/>
+        </svg>
+        <div class="gnum"><div class="n" id="numT">--</div><div class="u">°C</div><div class="l">Nhiệt độ</div></div>
+      </div>
+      <div class="gsub" id="subT">&nbsp;</div>
+    </div>
+
+    <div class="panel core" id="core">
+      <div class="pt" style="justify-content:center;color:var(--lvc)">Trung tâm giám sát</div>
+      <div class="radar">
+        <div class="sweep"></div>
+        <div class="blip fl" id="blipFlame"></div>
+        <div class="blip sm" id="blipSmoke"></div>
+        <div class="rc" id="rIcon">⏳</div>
+      </div>
+      <div class="stw" id="stWord">Chờ tín hiệu</div>
+      <div class="std" id="stDesc">Đang đợi dữ liệu từ thiết bị ESP32.</div>
+    </div>
+
+    <div class="panel gauge" id="pHum">
+      <div class="pt">Độ ẩm</div>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 200 200">
+          <g class="tk" id="tkH"></g>
+          <circle class="trk" cx="100" cy="100" r="80" transform="rotate(135 100 100)" id="trkH"/>
+          <circle class="val" cx="100" cy="100" r="80" transform="rotate(135 100 100)" id="arcH"/>
+        </svg>
+        <div class="gnum"><div class="n" id="numH">--</div><div class="u">%</div><div class="l">Độ ẩm</div></div>
+      </div>
+      <div class="gsub" id="subH">&nbsp;</div>
+    </div>
+  </section>
+
+  <!-- Cảm biến -->
+  <section class="section strip">
+    <div class="panel tile t-smoke" id="tSmoke">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 6c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg></div>
+      <div><div class="tl">Khói</div><div class="tv" id="tvSmoke">--</div><div class="ts" id="tsSmoke">&nbsp;</div></div>
+    </div>
+    <div class="panel tile t-flame" id="tFlame">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 2c1 4.5 6 6.5 6 12a6 6 0 0 1-12 0c0-2.2 1-3.6 2.4-4.8.2 2 1 3 2.2 3.3C11 8.5 10.4 5.4 12 2z"/></svg></div>
+      <div><div class="tl">Lửa</div><div class="tv" id="tvFlame">--</div><div class="ts" id="tsFlame">&nbsp;</div></div>
+    </div>
+    <div class="panel tile t-heat" id="tHeat">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 9v7"/></svg></div>
+      <div><div class="tl">Ngưỡng nhiệt</div><div class="tv" id="tvHeat">--</div><div class="ts" id="tsHeat">&nbsp;</div></div>
+    </div>
+    <div class="panel tile t-dht" id="tDht">
+      <div class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg></div>
+      <div><div class="tl">Cảm biến DHT11</div><div class="tv" id="tvDht">--</div><div class="ts" id="tsDht">&nbsp;</div></div>
+    </div>
+  </section>
+
+  <!-- Bảng lệnh -->
+  <section class="section panel">
+    <div class="pt">Bảng điều khiển</div>
+    <div class="deck-top">
+      <div class="mswitch" id="modeBox" data-mode="auto">
+        <span class="knob"></span>
+        <button data-mode="auto" class="active">TỰ ĐỘNG</button>
+        <button data-mode="manual">THỦ CÔNG</button>
+      </div>
+      <div class="hint" id="modeHint">Hệ thống tự điều khiển theo cảm biến.</div>
+    </div>
+
+    <div class="mods">
+      <button class="mod" data-key="fan">
+        <svg class="pw" viewBox="0 0 48 48"><path d="M33 13.5a15 15 0 1 1-18 0"/><path d="M24 7v16"/></svg>
+        <span><span class="mn">Quạt</span><span class="ms" id="msFan">--</span></span>
+      </button>
+      <button class="mod" data-key="pump">
+        <svg class="pw" viewBox="0 0 48 48"><path d="M33 13.5a15 15 0 1 1-18 0"/><path d="M24 7v16"/></svg>
+        <span><span class="mn">Bơm nước</span><span class="ms" id="msPump">--</span></span>
+      </button>
+      <button class="mod" data-key="buzzer">
+        <svg class="pw" viewBox="0 0 48 48"><path d="M33 13.5a15 15 0 1 1-18 0"/><path d="M24 7v16"/></svg>
+        <span><span class="mn">Còi báo động</span><span class="ms" id="msBuzzer">--</span></span>
+      </button>
+    </div>
+
+    <div class="deck-b">
+      <button class="btn ghost" id="btnMute">Tắt tiếng còi</button>
+      <div class="lim-box">
+        <span class="lb">Ngưỡng nhiệt</span>
+        <input type="range" id="limRange" min="20" max="60" step="0.5" value="33">
+        <span class="lv" id="limVal">33.0°C</span>
+        <button class="btn" id="btnLimit">Áp dụng</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Đồ thị & nhật ký -->
+  <section class="section two">
+    <div class="panel">
+      <div class="pt">Dữ liệu trực tiếp · 5 phút</div>
+      <div class="legend">
+        <span style="color:var(--acc)"><b style="background:var(--acc)"></b>Nhiệt độ (°C)</span>
+        <span style="color:var(--acc2)"><b style="background:var(--acc2)"></b>Độ ẩm (%)</span>
+      </div>
+      <div class="chart-box"><canvas id="chart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="pt">Nhật ký sự kiện</div>
+      <div class="tline" id="log"><div class="none">Chưa có sự kiện nào.</div></div>
+    </div>
+  </section>
+
+  <footer>
+    <span id="lastUpdate">Chưa có dữ liệu</span>
+    <span id="devInfo"></span>
+  </footer>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+// ====== CẤU HÌNH ======
+const DB = "https://xuongsx-21620-default-rtdb.firebaseio.com";
+const P_SENSORS = "/esp32/sensors.json";
+const P_CONTROL = "/esp32/control.json";
+const P_EVENTS  = "/esp32/events.json";
+const STATUS_POLL_MS = 2000;
+const EVENTS_POLL_MS = 10000;
+const OFFLINE_AFTER_MS = 12000;
+const MAXPTS = 150;                 // 150 điểm x 2 giây = 5 phút
+const ARC_C = 2 * Math.PI * 80;     // chu vi vòng đồng hồ
+const ARC_L = ARC_C * 0.75;         // cung 270 độ
+
+const $ = id => document.getElementById(id);
+const clamp01 = v => Math.max(0, Math.min(1, v));
+
+// ====== TRẠNG THÁI ======
+let control = { mode: "auto", fan: false, pump: false, buzzer: false, muteBuzzer: false, tempLimit: 33 };
+let lastStatus = null, lastUptime = null, lastUptimeChange = Date.now();
+let online = false;
+const pending = {};
+const series = { t: [], h: [] };
+let limitDraft = 33, limitDirty = false;
+let soundOn = false, audioCtx = null, lastBeep = 0;
+let hoverIdx = null;
+
+// ====== TIỆN ÍCH ======
+async function api(path, method = "GET", body) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res = await fetch(DB + path, {
+      method,
+      headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  } finally { clearTimeout(timer); }
+}
+
+let toastTimer;
+function toast(msg, isErr = false) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.className = "show" + (isErr ? " err" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = "", 2800);
+}
+function setLink(cls, text) { $("link").className = "chip status " + cls; $("link").querySelector("span").textContent = text; }
+function pendingValue(key, actual) {
+  const p = pending[key];
+  if (!p) return actual;
+  if (Date.now() > p.until || p.val === actual) { delete pending[key]; return actual; }
+  return p.val;
+}
+
+setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString("vi-VN", { hour12: false }); }, 1000);
+
+// ====== MÀU NHẤN ======
+const ACCENTS = [
+  { id: "cyan",   c: "#19e3ff" },
+  { id: "violet", c: "#a98bff" },
+  { id: "lime",   c: "#8dff5c" },
+  { id: "amber",  c: "#ffb020" }
+];
+function applyAccent(id) {
+  if (!ACCENTS.some(a => a.id === id)) id = "cyan";
+  document.documentElement.setAttribute("data-accent", id);
+  document.querySelectorAll("#accents button").forEach(b => b.classList.toggle("active", b.dataset.id === id));
+  try { localStorage.setItem("aegis-accent", id); } catch (e) {}
+  drawChart();
+}
+function initAccents() {
+  ACCENTS.forEach(a => {
+    const b = document.createElement("button");
+    b.dataset.id = a.id; b.style.background = a.c; b.style.color = a.c;
+    b.title = "Màu nhấn"; b.setAttribute("aria-label", "Màu nhấn " + a.id);
+    b.addEventListener("click", () => applyAccent(a.id));
+    $("accents").appendChild(b);
+  });
+  let saved = "cyan";
+  try { saved = localStorage.getItem("aegis-accent") || "cyan"; } catch (e) {}
+  applyAccent(saved);
+}
+
+// ====== ÂM THANH ======
+$("btnSound").addEventListener("click", () => {
+  soundOn = !soundOn;
+  if (soundOn && !audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  $("btnSound").textContent = "LOA · " + (soundOn ? "BẬT" : "TẮT");
+  $("btnSound").classList.toggle("active", soundOn);
+  if (soundOn) beep(660, .15);
+});
+function beep(freq, dur) {
+  if (!audioCtx) return;
+  try {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "square"; o.frequency.value = freq; g.gain.value = 0.07;
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch (e) {}
+}
+
+// ====== ĐỒNG HỒ VÒNG ======
+function buildTicks(id) {
+  const g = $(id), ns = "http://www.w3.org/2000/svg";
+  for (let i = 0; i <= 10; i++) {
+    const l = document.createElementNS(ns, "line");
+    l.setAttribute("x1", 100); l.setAttribute("y1", 4);
+    l.setAttribute("x2", 100); l.setAttribute("y2", i % 5 === 0 ? 14 : 10);
+    l.setAttribute("transform", "rotate(" + (27 * i - 135) + " 100 100)");
+    g.appendChild(l);
+  }
+}
+function initGauges() {
+  buildTicks("tkT"); buildTicks("tkH");
+  ["trkT", "trkH"].forEach(id => $(id).style.strokeDasharray = ARC_L + " " + ARC_C);
+  setArc("arcT", 0); setArc("arcH", 0);
+}
+function setArc(id, f) { $(id).style.strokeDasharray = (ARC_L * clamp01(f)) + " " + ARC_C; }
+function setLimitTick(limit) { $("limTick").setAttribute("transform", "rotate(" + (270 * clamp01(limit / 60) - 135) + " 100 100)"); }
+
+// ====== HIỂN THỊ ======
+const LEVELS = [
+  { cls: "l0", icon: "🛡️", word: "An toàn", desc: "Không có khói, không có lửa, nhiệt độ trong giới hạn cho phép." },
+  { cls: "l1", icon: "🌡️", word: "Nhiệt độ cao", desc: "Nhiệt độ vượt ngưỡng. Quạt và bơm đã tự bật để hạ nhiệt." },
+  { cls: "l2", icon: "💨", word: "Phát hiện khói", desc: "Quạt và còi đã bật. Hãy kiểm tra khu vực ngay." },
+  { cls: "l3", icon: "🔥", word: "Phát hiện lửa!", desc: "Bơm, quạt và còi đã bật. Xử lý khẩn cấp!" }
+];
+function computeLevel(s) {
+  if (typeof s.level === "number") return s.level;
+  return s.flameDetected ? 3 : s.smokeDetected ? 2 : 0;
+}
+function computeOnline(s) {
+  if (typeof s.ts === "number" && s.ts > 1.7e9) return Date.now() / 1000 - s.ts < OFFLINE_AFTER_MS / 1000 + 8;
+  if (s.uptime !== lastUptime) { lastUptime = s.uptime; lastUptimeChange = Date.now(); }
+  return Date.now() - lastUptimeChange < OFFLINE_AFTER_MS;
+}
+
+function setTile(name, alert, okVal, badVal, okSub, badSub) {
+  $("t" + name).classList.toggle("alert", alert);
+  $("tv" + name).textContent = alert ? badVal : okVal;
+  $("ts" + name).textContent = alert ? badSub : okSub;
+}
+
+function render(s) {
+  lastStatus = s;
+  online = computeOnline(s);
+
+  // Trung tâm
+  const level = computeLevel(s);
+  const lv = LEVELS[level] || LEVELS[0];
+  $("core").className = "panel core " + lv.cls;
+  $("stWord").textContent = lv.word;
+  $("stDesc").textContent = lv.desc;
+  $("rIcon").textContent = lv.icon;
+  $("blipFlame").classList.toggle("on", !!s.flameDetected);
+  $("blipSmoke").classList.toggle("on", !!s.smokeDetected);
+  const alarm = online && level >= 2;
+  document.body.classList.toggle("alarm", alarm);
+  if (alarm && soundOn && Date.now() - lastBeep > 1000) { lastBeep = Date.now(); beep(880, .4); }
+
+  // Đồng hồ
+  const dhtBad = !s.dhtOK || s.temperature === null || s.temperature === undefined;
+  const limit = Number(s.tempLimit) || control.tempLimit;
+  const hot = !dhtBad && s.temperature > limit;
+
+  $("numT").textContent = dhtBad ? "--" : Number(s.temperature).toFixed(1);
+  $("numH").textContent = dhtBad ? "--" : Math.round(s.humidity);
+  setArc("arcT", dhtBad ? 0 : s.temperature / 60);
+  setArc("arcH", dhtBad ? 0 : s.humidity / 100);
+  setLimitTick(limit);
+  $("pTemp").classList.toggle("hot", hot);
+  $("pTemp").classList.toggle("bad", dhtBad);
+  $("pHum").classList.toggle("bad", dhtBad);
+  $("subT").textContent = dhtBad ? "Lỗi cảm biến DHT11" : hot ? "Vượt ngưỡng " + limit + "°C" : "Trong giới hạn cho phép";
+  $("subH").textContent = dhtBad ? "Lỗi cảm biến DHT11" : s.humidity > 85 ? "Rất ẩm" : s.humidity < 30 ? "Khô" : "Bình thường";
+
+  // Thẻ cảm biến
+  setTile("Smoke", !!s.smokeDetected, "Không có", "Có khói!", "Cảm biến ổn định", "Nồng độ vượt ngưỡng");
+  setTile("Flame", !!s.flameDetected, "Không có", "Có lửa!", "Cảm biến ổn định", "Phát hiện tia lửa");
+  setTile("Heat", hot, "Bình thường", "Vượt ngưỡng", "Ngưỡng " + limit + "°C", "Quạt và bơm đang chạy");
+  setTile("Dht", dhtBad, "Hoạt động", "Có lỗi", "Đọc dữ liệu tốt", "Kiểm tra dây nối");
+
+  // Thiết bị
+  paintMod("fan", "msFan", !!s.fan, pendingValue("fan", !!s.fan), "Đang chạy", "Đã tắt");
+  paintMod("pump", "msPump", !!s.pump, pendingValue("pump", !!s.pump), "Đang phun", "Đã tắt");
+  paintMod("buzzer", "msBuzzer", !!s.buzzer, pendingValue("buzzer", !!s.buzzer), "Đang kêu", s.muteBuzzer ? "Đã tắt tiếng" : "Đã tắt");
+
+  if (!pending.mode) setModeUI(s.mode === "manual" ? "manual" : "auto");
+  if (!pending.mute) { control.muteBuzzer = !!s.muteBuzzer; paintMute(); }
+  if (!limitDirty && s.tempLimit) { limitDraft = Number(s.tempLimit); control.tempLimit = limitDraft; paintLimit(); }
+
+  // Kết nối
+  if (online) setLink("on", "ESP32 TRỰC TUYẾN"); else setLink("off", "ESP32 MẤT KẾT NỐI");
+  updateEnabled();
+
+  const d = (typeof s.ts === "number" && s.ts > 1.7e9) ? new Date(s.ts * 1000) : new Date();
+  $("lastUpdate").textContent = "Cập nhật " + d.toLocaleTimeString("vi-VN", { hour12: false });
+  const up = s.uptime ? formatUptime(Math.floor(s.uptime / 1000)) : "";
+  $("devInfo").textContent = [s.ip ? "IP " + s.ip : "", s.rssi ? "WiFi " + s.rssi + " dBm" : "", up ? "Chạy " + up : ""].filter(Boolean).join("  ·  ");
+
+  if (!dhtBad && online) {
+    series.t.push(Number(s.temperature)); series.h.push(Number(s.humidity));
+    if (series.t.length > MAXPTS) { series.t.shift(); series.h.shift(); }
+  }
+  drawChart();
+}
+
+function paintMod(key, subId, actualOn, shownOn, onText, offText) {
+  document.querySelector('.mod[data-key="' + key + '"]').classList.toggle("on", shownOn);
+  $(subId).textContent = actualOn ? onText : offText;
+}
+function formatUptime(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+  return h > 0 ? h + " giờ " + m + " phút" : m + " phút";
+}
+
+// ====== ĐIỀU KHIỂN ======
+function setModeUI(mode) {
+  $("modeBox").dataset.mode = mode;
+  document.querySelectorAll("#modeBox button").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+  $("modeHint").textContent = mode === "manual"
+    ? "Thủ công: bạn tự bấm bật tắt. Có khói hoặc lửa thì hệ thống vẫn tự bật quạt, bơm, còi để đảm bảo an toàn."
+    : "Hệ thống tự điều khiển theo cảm biến.";
+  control.mode = mode;
+  updateEnabled();
+}
+function updateEnabled() {
+  const manual = control.mode === "manual" && online;
+  document.querySelectorAll(".mod").forEach(b => b.disabled = !manual);
+  document.querySelectorAll("#modeBox button").forEach(b => b.disabled = !online);
+  $("btnMute").disabled = !online;
+  $("btnLimit").disabled = !online;
+}
+function paintMute() {
+  $("btnMute").classList.toggle("on", control.muteBuzzer);
+  $("btnMute").textContent = control.muteBuzzer ? "Bật lại tiếng còi" : "Tắt tiếng còi";
+}
+function paintLimit() {
+  $("limVal").textContent = limitDraft.toFixed(1) + "°C";
+  $("limRange").value = limitDraft;
+  $("limRange").style.setProperty("--p", ((limitDraft - 20) / 40 * 100) + "%");
+  setLimitTick(limitDraft);
+}
+
+async function pushControl(msg) {
+  try { await api(P_CONTROL, "PUT", control); toast(msg || "Đã gửi lệnh, thiết bị sẽ thực hiện trong vài giây"); }
+  catch (e) { toast("Gửi lệnh thất bại, kiểm tra mạng", true); throw e; }
+}
+
+async function changeMode(mode) {
+  if (mode === control.mode) return;
+  const prev = { ...control };
+  pending.mode = true;
+  if (mode === "manual" && lastStatus) {
+    control = { ...control, mode, fan: !!lastStatus.fan, pump: !!lastStatus.pump, buzzer: !!lastStatus.buzzer };
+  } else control = { ...control, mode };
+  setModeUI(mode);
+  try { await pushControl(mode === "manual" ? "Đã chuyển sang thủ công" : "Đã chuyển sang tự động"); }
+  catch (e) { control = prev; setModeUI(prev.mode); }
+  setTimeout(() => delete pending.mode, 7000);
+}
+
+async function toggleMod(key) {
+  const current = pendingValue(key, !!(lastStatus && lastStatus[key]));
+  const value = !current;
+  pending[key] = { val: value, until: Date.now() + 8000 };
+  control[key] = value;
+  if (lastStatus) render(lastStatus);
+  try { await pushControl(); }
+  catch (e) { delete pending[key]; if (lastStatus) render(lastStatus); }
+}
+
+async function toggleMute() {
+  const value = !control.muteBuzzer;
+  pending.mute = true;
+  control.muteBuzzer = value;
+  paintMute();
+  try { await pushControl(value ? "Đã tắt tiếng còi" : "Đã bật lại còi"); }
+  catch (e) { control.muteBuzzer = !value; paintMute(); }
+  setTimeout(() => delete pending.mute, 7000);
+}
+
+async function saveLimit() {
+  control.tempLimit = limitDraft;
+  try { await pushControl("Đã áp dụng ngưỡng " + limitDraft.toFixed(1) + "°C"); limitDirty = false; } catch (e) {}
+}
+
+document.querySelectorAll("#modeBox button").forEach(b => b.addEventListener("click", () => changeMode(b.dataset.mode)));
+document.querySelectorAll(".mod").forEach(b => b.addEventListener("click", () => toggleMod(b.dataset.key)));
+$("btnMute").addEventListener("click", toggleMute);
+$("btnLimit").addEventListener("click", saveLimit);
+$("limRange").addEventListener("input", e => { limitDirty = true; limitDraft = Number(e.target.value); paintLimit(); });
+
+// ====== ĐỒ THỊ VÙNG ======
+function drawChart() {
+  const cv = $("chart");
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const ctx = cv.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  const cs = getComputedStyle(document.documentElement);
+  const acc = cs.getPropertyValue("--acc").trim(), acc2 = cs.getPropertyValue("--acc2").trim();
+  const padL = 34, padR = 10, padT = 10, padB = 8;
+  const pw = w - padL - padR, ph = h - padT - padB;
+  const n = series.t.length;
+
+  if (n < 2) {
+    ctx.fillStyle = "#7f98b5"; ctx.font = "14px 'Exo 2', system-ui"; ctx.textAlign = "center";
+    ctx.fillText("Đang thu thập dữ liệu...", w / 2, h / 2);
+    return;
+  }
+
+  const all = series.t.concat(series.h);
+  let min = Math.floor(Math.min(...all) - 2), max = Math.ceil(Math.max(...all) + 2);
+  if (max - min < 10) { const mid = (max + min) / 2; min = mid - 5; max = mid + 5; }
+  const xAt = i => padL + pw - (pw * (n - 1 - i)) / (MAXPTS - 1);
+  const yAt = v => padT + ph - ((v - min) / (max - min)) * ph;
+
+  ctx.font = "11px 'Exo 2', system-ui"; ctx.textAlign = "right"; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (ph * i) / 4;
+    ctx.strokeStyle = "rgba(255,255,255,.08)"; ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#7f98b5"; ctx.fillText(Math.round(max - ((max - min) * i) / 4), padL - 6, y + 4);
+  }
+
+  function area(data, color, fillAlpha) {
+    const grad = ctx.createLinearGradient(0, padT, 0, padT + ph);
+    grad.addColorStop(0, color + fillAlpha); grad.addColorStop(1, color + "00");
+    ctx.beginPath();
+    data.forEach((v, i) => i === 0 ? ctx.moveTo(xAt(i), yAt(v)) : ctx.lineTo(xAt(i), yAt(v)));
+    ctx.lineTo(xAt(n - 1), padT + ph); ctx.lineTo(xAt(0), padT + ph); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.beginPath();
+    data.forEach((v, i) => i === 0 ? ctx.moveTo(xAt(i), yAt(v)) : ctx.lineTo(xAt(i), yAt(v)));
+    ctx.strokeStyle = color; ctx.lineWidth = 2.2; ctx.lineJoin = "round";
+    ctx.shadowColor = color; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  area(series.h, hex(acc2), "33");
+  area(series.t, hex(acc), "55");
+
+  if (hoverIdx !== null && hoverIdx >= 0 && hoverIdx < n) {
+    const x = xAt(hoverIdx);
+    ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph); ctx.stroke(); ctx.setLineDash([]);
+    [[series.t[hoverIdx], hex(acc)], [series.h[hoverIdx], hex(acc2)]].forEach(([v, c]) => {
+      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, yAt(v), 4, 0, 7); ctx.fill();
+    });
+    const txt = series.t[hoverIdx].toFixed(1) + "°C   " + Math.round(series.h[hoverIdx]) + "%";
+    ctx.font = "12px 'Exo 2', system-ui";
+    const tw = ctx.measureText(txt).width + 16;
+    const bx = Math.min(Math.max(x - tw / 2, padL), w - padR - tw);
+    ctx.fillStyle = "rgba(6,14,30,.92)"; ctx.strokeStyle = hex(acc); ctx.lineWidth = 1;
+    ctx.fillRect(bx, padT + 2, tw, 24); ctx.strokeRect(bx, padT + 2, tw, 24);
+    ctx.fillStyle = "#dff3ff"; ctx.textAlign = "left"; ctx.fillText(txt, bx + 8, padT + 18);
+  }
+}
+function hex(c) { return /^#[0-9a-f]{6}$/i.test(c) ? c : "#19e3ff"; }
+
+function hoverFromEvent(e) {
+  const cv = $("chart"), r = cv.getBoundingClientRect();
+  const px = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+  const padL = 34, padR = 10, pw = r.width - padL - padR, n = series.t.length;
+  if (!n) return;
+  const i = Math.round(n - 1 - ((padL + pw - px) / pw) * (MAXPTS - 1));
+  hoverIdx = (i >= 0 && i < n) ? i : null;
+  drawChart();
+}
+$("chart").addEventListener("mousemove", hoverFromEvent);
+$("chart").addEventListener("touchmove", hoverFromEvent, { passive: true });
+$("chart").addEventListener("mouseleave", () => { hoverIdx = null; drawChart(); });
+window.addEventListener("resize", drawChart);
+
+// ====== NHẬT KÝ ======
+const EV = {
+  normal: { color: "#39ff9c", text: "Trở lại bình thường" },
+  hot:    { color: "#ffb020", text: "Nhiệt độ vượt ngưỡng" },
+  smoke:  { color: "#ff7a2f", text: "Phát hiện khói" },
+  fire:   { color: "#ff3b4e", text: "Phát hiện lửa" }
+};
+
+async function loadEvents() {
+  try {
+    const q = "?orderBy=" + encodeURIComponent('"$key"') + "&limitToLast=20";
+    const data = await api(P_EVENTS + q);
+    const rows = data ? Object.values(data).filter(Boolean) : [];
+    rows.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    const box = $("log");
+    box.innerHTML = "";
+    if (!rows.length) { box.innerHTML = '<div class="none">Chưa có sự kiện nào.</div>'; return; }
+    rows.forEach(r => {
+      const info = EV[r.type] || { color: "#7f98b5", text: String(r.type || "Sự kiện") };
+      const el = document.createElement("div"); el.className = "ev"; el.style.setProperty("--c", info.color);
+      const a = document.createElement("div"); a.className = "e1"; a.textContent = info.text;
+      const b = document.createElement("div"); b.className = "e2";
+      const when = r.ts > 1.7e9
+        ? new Date(r.ts * 1000).toLocaleString("vi-VN", { hour12: false, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        : "Không rõ giờ";
+      b.textContent = when + (typeof r.temperature === "number" ? "  ·  " + r.temperature.toFixed(1) + "°C" : "");
+      el.append(a, b);
+      box.appendChild(el);
+    });
+  } catch (e) {}
+}
+
+// ====== VÒNG LẶP ======
+async function pollStatus() {
+  try {
+    const s = await api(P_SENSORS);
+    if (!s) { setLink("", "CHƯA CÓ DỮ LIỆU"); updateEnabled(); return; }
+    render(s);
+  } catch (e) {
+    online = false;
+    setLink("off", "KHÔNG NỐI ĐƯỢC FIREBASE");
+    updateEnabled();
+  }
+}
+
+async function init() {
+  initGauges();
+  initAccents();
+  setLimitTick(limitDraft);
+  paintLimit();
+  updateEnabled();
+  try {
+    const c = await api(P_CONTROL);
+    if (c) {
+      control = {
+        mode: c.mode === "manual" ? "manual" : "auto",
+        fan: !!c.fan, pump: !!c.pump, buzzer: !!c.buzzer,
+        muteBuzzer: !!c.muteBuzzer, tempLimit: Number(c.tempLimit) || 33
+      };
+      limitDraft = control.tempLimit;
+      setModeUI(control.mode); paintMute(); paintLimit();
+    }
+  } catch (e) {}
+  drawChart();
+  await pollStatus();
+  loadEvents();
+  setInterval(pollStatus, STATUS_POLL_MS);
+  setInterval(loadEvents, EVENTS_POLL_MS);
+}
+init();
+</script>
+</body>
+</html>
